@@ -182,17 +182,10 @@
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
                     console.log("Checking feature: ", feature); // Debugging: log each feature
-                    
                     // Check if the coordinates are within the bounds of the drought region
-                    if (isInside(lat, lon, feature.geometry.coordinates)) {
-                        console.log("Inside polygon with id: ", feature.id); // Debugging: log the feature's id
-                        if (feature.properties.DM === 3) {
-                            severity = 'Extreme';  // Severity level 3 represents Extreme Drought
-                        } else if (feature.properties.DM === 2) {
-                            severity = 'Moderate';  // Severity level 2 represents Moderate Drought
-                        } else if (feature.properties.DM === 1) {
-                            severity = 'Normal';  // Severity level 1 represents Normal conditions
-                        }
+                    if (isInside(lat, lon, feature.geometry.coordinates[0])) {
+                        console.log("Found a match inside polygon! Drought type: ", feature.properties.Drought_Type);
+                        severity = feature.properties.Drought_Type || 'Normal'; // Default to Normal if Drought_Type is not present
                     }
                 });
             } else {
@@ -206,6 +199,7 @@
             let inside = false;
             console.log("Checking point (" + lat + ", " + lon + ") against polygon");
 
+            // Handle MultiPolygon (array of polygons)
             if (Array.isArray(coordinates[0][0])) {
                 coordinates.forEach(polygon => {
                     inside = inside || checkPolygonInside(lat, lon, polygon);
@@ -218,13 +212,14 @@
             return inside;
         }
 
-        // Helper function to check if a point is inside a single polygon
+        // Helper function to check if a point is inside a single polygon using Ray-Casting Algorithm
         function checkPolygonInside(lat, lon, polygon) {
             let inside = false;
             for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-                let xi = polygon[i][0], yi = polygon[i][1];
-                let xj = polygon[j][0], yj = polygon[j][1];
+                let xi = polygon[i][0], yi = polygon[i][1]; // [longitude, latitude]
+                let xj = polygon[j][0], yj = polygon[j][1]; // [longitude, latitude]
 
+                // Ray-Casting algorithm check
                 let intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
                 if (intersect) inside = !inside;
             }
@@ -243,27 +238,46 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            const droughtLayer = L.layerGroup().addTo(map);
-            if (droughtData === 'Extreme') {
-                L.circle([lat, lon], { color: 'red', radius: 50000 }).addTo(droughtLayer).bindPopup('Extreme Drought');
-            } else if (droughtData === 'Moderate') {
-                L.circle([lat, lon], { color: 'orange', radius: 50000 }).addTo(droughtLayer).bindPopup('Moderate Drought');
-            } else {
-                L.circle([lat, lon], { color: 'green', radius: 50000 }).addTo(droughtLayer).bindPopup('Normal Conditions');
-            }
+            const severityColors = {
+                'Normal': 'green',
+                'Abnormally Dry': 'yellow',
+                'Drought': 'orange',
+                'Severe Drought': 'red'
+            };
+
+            // Add a circle marker at the address location
+            L.circle([lat, lon], {
+                color: severityColors[droughtData] || 'green', // Default to green
+                radius: 10000, // 10 km radius
+                fillOpacity: 0.5
+            }).addTo(map).bindPopup(`Drought Severity: ${droughtData}`);
         }
 
-        // Function to display advice based on drought severity
-        function displayAdvice(droughtData) {
-            const adviceElement = document.getElementById('advice');
-            if (droughtData === 'Extreme') {
-                adviceElement.innerHTML = "<strong>Extreme Water Preservation Required:</strong> Avoid water-intensive activities, reduce outdoor water usage, and follow local water restrictions.";
-            } else if (droughtData === 'Moderate') {
-                adviceElement.innerHTML = "<strong>Moderate Water Preservation:</strong> Be mindful of water use, limit lawn watering, and reduce water waste.";
-            } else {
-                adviceElement.innerHTML = "<strong>Normal Conditions:</strong> No special water preservation practices are needed.";
+        // Function to display water preservation advice
+        function displayAdvice(severity) {
+            const advice = document.getElementById('advice');
+
+            let message = '';
+            switch (severity) {
+                case 'Normal':
+                    message = 'The area is currently normal, no immediate water-saving measures are needed.';
+                    break;
+                case 'Abnormally Dry':
+                    message = 'Water conservation is recommended. Reduce water usage where possible.';
+                    break;
+                case 'Drought':
+                    message = 'Severe drought conditions. Water-saving measures are critical.';
+                    break;
+                case 'Severe Drought':
+                    message = 'Extreme drought conditions. Strict water-saving measures are mandatory.';
+                    break;
+                default:
+                    message = 'Unable to determine drought severity.';
+                    break;
             }
+            advice.innerHTML = message;
         }
     </script>
+
 </body>
 </html>
