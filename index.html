@@ -89,19 +89,18 @@
     <script>
         let map; // Declare the map variable outside of the function to ensure global access
 
-        // Event listener for form submission
         document.getElementById('locationForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const address = document.getElementById('address').value;
-            const month = document.getElementById('month').value;
 
             // Geocode the address using Nominatim (OpenStreetMap)
             getCoordinates(address).then(coords => {
                 const lat = coords.lat;
                 const lon = coords.lon;
 
-                // Fetch drought data for the selected month (from GitHub repository)
+                // Fetch drought data for the selected month using GitHub Pages URLs
+                const month = parseInt(document.getElementById('month').value);
                 getDroughtData(lat, lon, month).then(droughtData => {
                     // Display the map with drought heatmap
                     showMap(lat, lon, droughtData);
@@ -109,7 +108,7 @@
                     // Show advice based on drought data
                     displayAdvice(droughtData);
                 }).catch(error => {
-                    console.error('Error fetching drought data:', error);
+                    console.error('Error:', error);
                     alert('Unable to fetch drought data. Please try again.');
                 });
             }).catch(error => {
@@ -127,14 +126,10 @@
                 .then(data => {
                     if (data.length > 0) {
                         const result = data[0];
-                        if (result.address && result.address.city && result.address.state) {
-                            return {
-                                lat: parseFloat(result.lat),
-                                lon: parseFloat(result.lon)
-                            };
-                        } else {
-                            throw new Error('The address is too vague or incomplete.');
-                        }
+                        return {
+                            lat: parseFloat(result.lat),
+                            lon: parseFloat(result.lon)
+                        };
                     } else {
                         throw new Error('No results found for the provided address');
                     }
@@ -146,21 +141,21 @@
                 });
         }
 
-        // Function to fetch drought data based on selected month
+        // Function to fetch drought data for the selected month from GitHub Pages
         function getDroughtData(lat, lon, month) {
             const droughtDataUrls = {
-                1: 'data/usdm_20240102.json',
-                2: 'data/usdm_20240206.json',
-                3: 'data/usdm_20240305.json',
-                4: 'data/usdm_20240402.json',
-                5: 'data/usdm_20240507.json',
-                6: 'data/usdm_20240604.json',
-                7: 'data/usdm_20240702.json',
-                8: 'data/usdm_20240806.json',
-                9: 'data/usdm_20240903.json',
-                10: 'data/usdm_20241001.json',
-                11: 'data/usdm_20241105.json',
-                12: 'data/usdm_20241203.json'
+                1: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240102.json',
+                2: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240206.json',
+                3: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240305.json',
+                4: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240402.json',
+                5: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240507.json',
+                6: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240604.json',
+                7: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240702.json',
+                8: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240806.json',
+                9: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240903.json',
+                10: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241001.json',
+                11: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241105.json',
+                12: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241203.json'
             };
 
             const url = droughtDataUrls[month];
@@ -185,8 +180,8 @@
         function findDroughtSeverity(lat, lon, droughtData) {
             let severity = 'Normal';  // Default to Normal
             droughtData.features.forEach(feature => {
-                const bounds = feature.geometry.coordinates[0];
-                if (isInside(lat, lon, bounds)) {
+                const bounds = feature.geometry.coordinates[0]; // Coordinates for the polygon boundary
+                if (isInside(lat, lon, bounds)) { // Check if lat/lon is inside the drought area
                     severity = feature.properties.Drought_Type || 'Normal';
                 }
             });
@@ -208,16 +203,20 @@
 
         // Function to display the map with drought heatmap (Leaflet.js)
         function showMap(lat, lon, droughtData) {
+            // If the map already exists, remove it
             if (map) {
-                map.remove(); // Remove the existing map if it exists
+                map.remove(); // Remove the existing map
             }
 
+            // Create a new map instance
             map = L.map('map').setView([lat, lon], 10);
 
+            // Use OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
+            // Add drought-related data to the map (simplified)
             const droughtLayer = L.layerGroup().addTo(map);
             if (droughtData === 'Extreme') {
                 L.circle([lat, lon], { color: 'red', radius: 50000 }).addTo(droughtLayer).bindPopup('Extreme Drought');
@@ -232,11 +231,11 @@
         function displayAdvice(droughtData) {
             const adviceElement = document.getElementById('advice');
             if (droughtData === 'Extreme') {
-                adviceElement.innerHTML = "<strong>Extreme Water Preservation Required:</strong> Avoid water-intensive activities, reduce outdoor water usage, and follow local water restrictions.";
+                adviceElement.innerHTML = '<strong>Extreme drought:</strong> Water conservation is critical. Limit water use.';
             } else if (droughtData === 'Moderate') {
-                adviceElement.innerHTML = "<strong>Moderate Water Preservation:</strong> Be mindful of water use, limit lawn watering, and reduce water waste.";
+                adviceElement.innerHTML = '<strong>Moderate drought:</strong> Be mindful of water usage. Use water efficiently.';
             } else {
-                adviceElement.innerHTML = "<strong>Normal Conditions:</strong> No special water preservation practices are needed.";
+                adviceElement.innerHTML = '<strong>Normal conditions:</strong> No significant drought observed. Keep water use reasonable.';
             }
         }
     </script>
