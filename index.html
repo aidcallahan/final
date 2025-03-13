@@ -113,67 +113,66 @@
 
             // Geocode the address using Nominatim (OpenStreetMap)
             getCoordinates(address).then(coords => {
+                console.log("Geocoded coordinates:", coords); // Debugging: log the coordinates
                 if (coords.lat && coords.lon) {
                     const lat = coords.lat;
                     const lon = coords.lon;
 
                     // Fetch the drought data for the selected month
-                    getDroughtData(month, lat, lon)
-                        .then(droughtData => {
-                            // Display the map with drought heatmap
-                            showMap(lat, lon, droughtData);
+                    getDroughtData(month, lat, lon).then(droughtData => {
+                        // Display the map with drought heatmap
+                        showMap(lat, lon, droughtData);
 
-                            // Show advice based on drought data
-                            displayAdvice(droughtData);
-                        })
-                        .catch(error => {
-                            console.error('Error fetching drought data:', error);
-                            alert('Error fetching drought data. Please try again later.');
-                        });
+                        // Show advice based on drought data
+                        displayAdvice(droughtData);
+                    }).catch(error => {
+                        console.error('Error fetching drought data:', error);
+                    });
                 } else {
                     console.error('Invalid coordinates received!');
-                    alert('Unable to find the coordinates for the given address.');
                 }
             }).catch(error => {
                 console.error('Error fetching coordinates:', error);
-                alert('Unable to geocode the address. Please try again later.');
+                alert('Unable to find the coordinates for the given address.');
             });
         });
 
         // Function to geocode address using Nominatim (OpenStreetMap)
-        async function getCoordinates(address) {
+        function getCoordinates(address) {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1`;
 
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.length > 0) {
-                    const result = data[0];
-                    return {
-                        lat: parseFloat(result.lat),
-                        lon: parseFloat(result.lon)
-                    };
-                } else {
-                    throw new Error('No results found for the provided address');
-                }
-            } catch (error) {
-                console.error('Error fetching coordinates:', error);
-                throw error;
-            }
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const result = data[0];
+                        return {
+                            lat: parseFloat(result.lat),
+                            lon: parseFloat(result.lon)
+                        };
+                    } else {
+                        throw new Error('No results found for the provided address');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    return { lat: null, lon: null };
+                });
         }
 
         // Function to fetch drought data for the selected month from GitHub
-        async function getDroughtData(month, lat, lon) {
+        function getDroughtData(month, lat, lon) {
             const droughtDataUrl = droughtDataUrls[month];
 
-            try {
-                const response = await fetch(droughtDataUrl);
-                const data = await response.json();
-                return findDroughtSeverity(data, lat, lon);
-            } catch (error) {
-                console.error('Error fetching drought data:', error);
-                throw new Error('Error fetching drought data');
-            }
+            return fetch(droughtDataUrl)
+                .then(response => response.json())
+                .then(data => {
+                    return findDroughtSeverity(data, lat, lon);
+                })
+                .catch(error => {
+                    console.error('Error fetching drought data:', error);
+                    return 'Normal'; // Default to Normal if there's an issue
+                });
         }
 
         // Function to find drought severity based on the fetched data
@@ -182,8 +181,11 @@
 
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
+                    console.log("Checking feature: ", feature); // Debugging: log each feature
+                    
+                    // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
-                        // Check the 'DM' property to determine the severity
+                        console.log("Inside polygon with id: ", feature.id); // Debugging: log the feature's id
                         if (feature.properties.DM === 3) {
                             severity = 'Extreme';  // Severity level 3 represents Extreme Drought
                         } else if (feature.properties.DM === 2) {
@@ -202,17 +204,17 @@
         // Function to check if a point is inside a polygon (supports both single and multi-polygons)
         function isInside(lat, lon, coordinates) {
             let inside = false;
-            
+            console.log("Checking point (" + lat + ", " + lon + ") against polygon");
+
             if (Array.isArray(coordinates[0][0])) {
-                // Multi-polygon (array of polygons)
                 coordinates.forEach(polygon => {
                     inside = inside || checkPolygonInside(lat, lon, polygon);
                 });
             } else {
-                // Single polygon
                 inside = checkPolygonInside(lat, lon, coordinates);
             }
-            
+
+            console.log("Inside polygon? " + inside);
             return inside;
         }
 
