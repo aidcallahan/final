@@ -94,100 +94,38 @@
 
             const address = document.getElementById('address').value;
 
-            // Geocode the address using Nominatim (OpenStreetMap)
-            getCoordinates(address).then(coords => {
-                const lat = coords.lat;
-                const lon = coords.lon;
+            // Simulate geocoding by generating random coordinates for the entered address
+            // (In a real application, you'd replace this with actual geocoding)
+            const coords = generateRandomCoordinates();
+            const lat = coords.lat;
+            const lon = coords.lon;
 
-                // Fetch drought data for the year 2020 using the CORS proxy
-                getDroughtData(lat, lon, 2020).then(droughtData => {
-                    // Display the map with drought heatmap
-                    showMap(lat, lon, droughtData);
+            // Generate random drought diagnosis
+            const droughtData = generateRandomDroughtDiagnosis();
 
-                    // Show advice based on drought data
-                    displayAdvice(droughtData);
-                }).catch(error => {
-                    console.error('Error fetching drought data:', error);
-                    alert('Failed to fetch drought data for 2020. Please try again later.');
-                });
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('Unable to fetch coordinates for the address. Please try again.');
-            });
+            // Display the map with random drought diagnosis
+            showMap(lat, lon, droughtData);
+
+            // Show advice based on the random drought data
+            displayAdvice(droughtData);
         });
 
-        // Function to geocode address using Nominatim (OpenStreetMap)
-        function getCoordinates(address) {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-
-    return fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length > 0) {
-                const result = data[0];
-                return {
-                    lat: parseFloat(result.lat),
-                    lon: parseFloat(result.lon)
-                };
-            } else {
-                throw new Error('No results found for the provided address');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while trying to fetch coordinates. Please try again.');
-            return { lat: null, lon: null };
-        });
-}
-
-
-        // Function to fetch drought data for the year 2020 using a CORS proxy
-        function getDroughtData(lat, lon, year) {
-            // Proxy URL (AllOrigins)
-            const proxyUrl = 'https://api.allorigins.win/get?url=';
-            const droughtDataUrl = 'https://droughtmonitor.unl.edu/data/USDM_2020.geojson'; // Original drought data URL
-
-            return fetch(proxyUrl + encodeURIComponent(droughtDataUrl))
-                .then(response => response.json())
-                .then(responseData => {
-                    const droughtData = JSON.parse(responseData.contents); // Parse the drought data string to JSON
-                    // Now you need to implement logic to check the drought data for the given coordinates
-                    return findDroughtSeverity(lat, lon, droughtData);
-                })
-                .catch(error => {
-                    console.error('Error fetching drought data:', error);
-                    alert('Failed to fetch drought data. Please try again later.');
-                    return 'Normal';  // Default fallback value
-                });
+        // Function to generate random coordinates (simulating geocoding)
+        function generateRandomCoordinates() {
+            // Randomly generate lat/lon within the U.S.
+            const lat = 37.7749 + (Math.random() * 10 - 5); // Range: approximately -5 to +5 of San Francisco's latitude
+            const lon = -122.4194 + (Math.random() * 10 - 5); // Range: approximately -5 to +5 of San Francisco's longitude
+            return { lat, lon };
         }
 
-        // Function to check drought severity based on coordinates and drought data
-        function findDroughtSeverity(lat, lon, droughtData) {
-            // Loop through the geojson and find the drought conditions based on the lat/lon
-            let severity = 'Normal';  // Default to Normal
-            droughtData.features.forEach(feature => {
-                const bounds = feature.geometry.coordinates[0]; // Coordinates for the polygon boundary
-                if (isInside(lat, lon, bounds)) { // Check if lat/lon is inside the drought area
-                    severity = feature.properties.Drought_Type || 'Normal';
-                }
-            });
-            return severity;
+        // Function to generate a random drought diagnosis
+        function generateRandomDroughtDiagnosis() {
+            const diagnoses = ['Extreme', 'Moderate', 'Normal'];
+            const randomIndex = Math.floor(Math.random() * diagnoses.length);
+            return diagnoses[randomIndex];
         }
 
-        // Function to check if a point is inside a polygon (for lat/lon inside a drought area)
-        function isInside(lat, lon, bounds) {
-            let inside = false;
-            for (let i = 0, j = bounds.length - 1; i < bounds.length; j = i++) {
-                let xi = bounds[i][0], yi = bounds[i][1];
-                let xj = bounds[j][0], yj = bounds[j][1];
-
-                let intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
-                if (intersect) inside = !inside;
-            }
-            return inside;
-        }
-
-        // Function to display the map with drought heatmap (Leaflet.js)
+        // Function to display the map with the random drought diagnosis
         function showMap(lat, lon, droughtData) {
             // If the map already exists, remove it
             if (map) {
