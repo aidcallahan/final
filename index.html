@@ -181,109 +181,87 @@
 
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
-                    console.log("Checking feature: ", feature); // Debugging: log each feature
-
                     // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
-                        console.log("Found a match inside polygon! Drought type: ", feature.properties.DM);
-
-                        // Map DM values to severity
-                        switch (feature.properties.DM) {
-                            case 1:
-                                severity = 'Abnormally Dry';
-                                break;
-                            case 2:
-                                severity = 'Drought';
-                                break;
-                            case 3:
-                                severity = 'Severe Drought';
-                                break;
-                            default:
-                                severity = 'Normal'; // Default to Normal if DM doesn't match
-                        }
+                        severity = getSeverityLabel(feature.properties.DM) || 'Normal'; // Default to Normal if DM is not found
                     }
                 });
-            } else {
-                console.error("Latitude or Longitude is undefined!");
             }
-
-            console.log("Drought severity determined: ", severity); // Final check of the determined severity
             return severity;
         }
 
-        // Function to check if a point is inside a polygon (supports both single and multi-polygons)
-        function isInside(lat, lon, coordinates) {
-            let inside = false;
-            console.log("Checking point (" + lat + ", " + lon + ") against polygon");
-
-            // Handle MultiPolygon (array of polygons)
-            if (Array.isArray(coordinates[0][0])) {
-                coordinates.forEach((polygon, index) => {
-                    console.log(`Checking polygon ${index + 1}`); // Debugging: Log which polygon is being checked
-                    inside = inside || checkPolygonInside(lon, lat, polygon); // Ensure lat/lon is in correct order
-                });
-            } else {
-                inside = checkPolygonInside(lon, lat, coordinates); // Ensure lat/lon is in correct order
+        // Function to map DM value to drought severity label
+        function getSeverityLabel(dm) {
+            switch (dm) {
+                case 0: return 'Abnormally Dry';
+                case 1: return 'Moderate Drought';
+                case 2: return 'Severe Drought';
+                case 3: return 'Extreme Drought';
+                case 4: return 'Exceptional Drought';
+                default: return 'Normal';
             }
-
-            console.log("Inside polygon? " + inside); // Log the result of the inside check
-            return inside;
         }
 
-        // Helper function to check if a point is inside a single polygon using Ray-Casting Algorithm
-        function checkPolygonInside(lon, lat, polygon) {
-            let inside = false;
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-                let xi = polygon[i][0], yi = polygon[i][1]; // [longitude, latitude]
-                let xj = polygon[j][0], yj = polygon[j][1]; // [longitude, latitude]
-
-                // Ray-Casting algorithm check
-                let intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
-                if (intersect) inside = !inside;
+        // Function to show the map with drought severity circles
+        function showMap(lat, lon, droughtSeverity) {
+            if (map) {
+                map.remove(); // Remove the existing map
             }
-            return inside;
+
+            map = L.map('map').setView([lat, lon], 10);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Define colors based on drought severity
+            const severityColors = {
+                'Abnormally Dry': 'yellow',
+                'Moderate Drought': 'orange',
+                'Severe Drought': 'red',
+                'Extreme Drought': 'purple',
+                'Exceptional Drought': 'darkred',
+                'Normal': 'green'
+            };
+
+            // Add a circle marker at the address location
+            L.circle([lat, lon], {
+                color: severityColors[droughtSeverity] || 'green', // Default to green
+                fillColor: severityColors[droughtSeverity] || 'green', // Ensure fill color matches border color
+                fillOpacity: 0.5,
+                radius: 10000 // 10 km radius
+            }).addTo(map).bindPopup(`Drought Severity: ${droughtSeverity}`);
         }
 
-        // Function to display drought severity and recommendations
-        function displayAdvice(droughtSeverity) {
-            const adviceContainer = document.getElementById('advice');
+        // Function to display water preservation advice
+        function displayAdvice(severity) {
+            const advice = document.getElementById('advice');
+
             let message = '';
-
-            switch (droughtSeverity) {
-                case 'Abnormally Dry':
-                    message = "<strong>Abnormally Dry:</strong> Conditions are drier than usual. ";
-                    message += "It's a good idea to reduce water use where possible.";
+            switch (severity) {
+                case 'Normal':
+                    message = '<strong>Normal:</strong> Business as usual. No immediate water-saving measures are needed.';
                     break;
-                case 'Drought':
-                    message = "<strong>Drought:</strong> Moderate drought conditions. ";
-                    message += "Limit outdoor watering, and conserve water indoors.";
+                case 'Abnormally Dry':
+                    message = '<strong>Abnormally Dry:</strong> Water conservation is recommended. Reduce water usage where possible.';
+                    break;
+                case 'Moderate Drought':
+                    message = '<strong>Moderate Drought:</strong> Increase water conservation. Limit unnecessary water usage.';
                     break;
                 case 'Severe Drought':
-                    message = "<strong>Severe Drought:</strong> Water conservation is critical. ";
-                    message += "Use as little water as possible. Avoid non-essential water use.";
+                    message = '<strong>Severe Drought:</strong> Severe drought conditions. Water-saving measures are critical.';
                     break;
-                case 'Normal':
-                    message = "<strong>Normal:</strong> No drought conditions. ";
-                    message += "No water use recommendations.";
+                case 'Extreme Drought':
+                    message = '<strong>Extreme Drought:</strong> Extreme drought conditions. Strict water-saving measures are mandatory.';
+                    break;
+                case 'Exceptional Drought':
+                    message = '<strong>Exceptional Drought:</strong> Exceptional drought conditions. Immediate action is necessary to preserve water.';
                     break;
                 default:
-                    message = "<strong>Unknown:</strong> Unable to determine drought status.";
+                    message = 'Unable to determine drought severity.';
                     break;
             }
-
-            adviceContainer.innerHTML = message;
-        }
-
-        // Function to display the map and add drought regions as a heatmap (optional)
-        function showMap(lat, lon, droughtData) {
-            if (!map) {
-                map = L.map('map').setView([lat, lon], 12); // Initialize the map only once
-            }
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([lat, lon]).addTo(map)
-                .bindPopup('You are here.')
-                .openPopup();
+            advice.innerHTML = message;
         }
     </script>
 
