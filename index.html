@@ -180,17 +180,13 @@
             let severity = 'Normal';  // Default to Normal
 
             if (lat && lon) { // Check if lat and lon are defined
-                console.log("Features in drought data:", droughtData.features); // Log all features
-
                 droughtData.features.forEach(feature => {
                     console.log("Checking feature: ", feature); // Debugging: log each feature
-                    console.log("Feature geometry:", feature.geometry); // Log geometry to ensure we are looking at the correct data
-                    console.log("Feature coordinates:", feature.geometry.coordinates); // Log coordinates
-                    
+
                     // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
                         console.log("Found a match inside polygon! Drought type: ", feature.properties.DM);
-                        
+
                         // Map DM values to severity
                         switch (feature.properties.DM) {
                             case 1:
@@ -202,17 +198,16 @@
                             case 3:
                                 severity = 'Severe Drought';
                                 break;
-                            case 4:
-                                severity = 'Extreme Drought'; // Added DM=4 for extreme drought
-                                break;
                             default:
-                                severity = 'Normal'; // Default to Normal if not matching 1, 2, 3, or 4
+                                severity = 'Normal'; // Default to Normal if DM doesn't match
                         }
                     }
                 });
             } else {
                 console.error("Latitude or Longitude is undefined!");
             }
+
+            console.log("Drought severity determined: ", severity); // Final check of the determined severity
             return severity;
         }
 
@@ -223,15 +218,15 @@
 
             // Handle MultiPolygon (array of polygons)
             if (Array.isArray(coordinates[0][0])) {
-                coordinates.forEach(polygon => {
-                    inside = inside || checkPolygonInside(lon, lat, polygon); // Swap lat and lon here
+                coordinates.forEach((polygon, index) => {
+                    console.log(`Checking polygon ${index + 1}`); // Debugging: Log which polygon is being checked
+                    inside = inside || checkPolygonInside(lon, lat, polygon); // Ensure lat/lon is in correct order
                 });
             } else {
-                // Single polygon
-                inside = checkPolygonInside(lon, lat, coordinates); // Swap lat and lon here
+                inside = checkPolygonInside(lon, lat, coordinates); // Ensure lat/lon is in correct order
             }
 
-            console.log("Inside polygon? " + inside);
+            console.log("Inside polygon? " + inside); // Log the result of the inside check
             return inside;
         }
 
@@ -249,60 +244,46 @@
             return inside;
         }
 
-        // Function to show the map with drought severity circles
-        function showMap(lat, lon, droughtData) {
-            if (map) {
-                map.remove(); // Remove the existing map
-            }
-
-            map = L.map('map').setView([lat, lon], 10);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            const severityColors = {
-                'Normal': 'green',
-                'Abnormally Dry': 'yellow',
-                'Drought': 'orange',
-                'Severe Drought': 'red',
-                'Extreme Drought': 'purple' // Color for DM=4
-            };
-
-            // Add a circle marker at the address location
-            L.circle([lat, lon], {
-                color: severityColors[droughtData] || 'green', // Default to green
-                radius: 10000, // 10 km radius
-                fillOpacity: 0.5
-            }).addTo(map).bindPopup(`Drought Severity: ${droughtData}`);
-        }
-
-        // Function to display water preservation advice
-        function displayAdvice(severity) {
-            const advice = document.getElementById('advice');
+        // Function to display drought severity and recommendations
+        function displayAdvice(droughtSeverity) {
+            const adviceContainer = document.getElementById('advice');
             let message = '';
 
-            switch (severity) {
-                case 'Normal':
-                    message = "<b>Normal</b>: Business as usual. Continue to conserve water where possible.";
-                    break;
+            switch (droughtSeverity) {
                 case 'Abnormally Dry':
-                    message = "<b>Abnormally Dry</b>: Consider using water more efficiently. Limit outdoor watering.";
+                    message = "<strong>Abnormally Dry:</strong> Conditions are drier than usual. ";
+                    message += "It's a good idea to reduce water use where possible.";
                     break;
                 case 'Drought':
-                    message = "<b>Drought</b>: Be mindful of water usage. Conserve water and avoid wasteful practices.";
+                    message = "<strong>Drought:</strong> Moderate drought conditions. ";
+                    message += "Limit outdoor watering, and conserve water indoors.";
                     break;
                 case 'Severe Drought':
-                    message = "<b>Severe Drought</b>: Water restrictions may be in place. Conserve water as much as possible.";
+                    message = "<strong>Severe Drought:</strong> Water conservation is critical. ";
+                    message += "Use as little water as possible. Avoid non-essential water use.";
                     break;
-                case 'Extreme Drought':
-                    message = "<b>Extreme Drought</b>: Extreme drought conditions. Strict water-saving measures are mandatory.";
+                case 'Normal':
+                    message = "<strong>Normal:</strong> No drought conditions. ";
+                    message += "No water use recommendations.";
                     break;
                 default:
-                    message = 'Unable to determine drought severity.';
+                    message = "<strong>Unknown:</strong> Unable to determine drought status.";
                     break;
             }
-            advice.innerHTML = message;
+
+            adviceContainer.innerHTML = message;
+        }
+
+        // Function to display the map and add drought regions as a heatmap (optional)
+        function showMap(lat, lon, droughtData) {
+            if (!map) {
+                map = L.map('map').setView([lat, lon], 12); // Initialize the map only once
+            }
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            L.marker([lat, lon]).addTo(map)
+                .bindPopup('You are here.')
+                .openPopup();
         }
     </script>
 
