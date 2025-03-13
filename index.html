@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drought Awareness</title>
+    <title>Drought Checker</title>
 
     <!-- Leaflet.js (for the map) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
@@ -14,7 +14,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #a3c9f1; /* Pastel blue background */
         }
 
         h1 {
@@ -54,16 +54,32 @@
             height: 500px;
             width: 100%;
         }
+
+        #footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #footer a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        #footer a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Check if Your Area is in Drought (2024)</h1>
+    <h1>Check an Area for Drought</h1>
     <form id="locationForm">
-        <label for="address">Enter your address:</label>
+        <label for="address">Enter an address:</label>
         <input type="text" id="address" name="address" required>
 
-        <label for="month">Select month:</label>
+        <label for="month">Select a month:</label>
         <select id="month" name="month" required>
             <option value="1">January</option>
             <option value="2">February</option>
@@ -79,11 +95,15 @@
             <option value="12">December</option>
         </select>
         
-        <button type="submit">Check Drought Status</button>
+        <button type="submit">Check Drought Conditions</button>
     </form>
 
     <div id="map"></div> <!-- Map container -->
     <div id="advice"></div> <!-- Water preservation advice -->
+
+    <div id="footer">
+        <p>Drought conditions are reflective of 2024 data collected by the National Drought Mitigation Center (NDMC), the U.S. Department of Agriculture (USDA) and the National Oceanic and Atmospheric Administration (NOAA). For more information on what YOU can do during a drought, <a href="https://www.weather.gov/safety/drought-action#:~:text=Reduce%20your%20outdoor%20water%20usage,early%20morning%20or%20late%20evening" target="_blank">click here</a>.</p>
+    </div>
 
     <script>
         let map; // Declare the map variable outside of the function to ensure global access
@@ -255,7 +275,7 @@
                 color: severityColors[droughtSeverity] || 'green', // Default to green
                 fillColor: severityColors[droughtSeverity] || 'green', // Ensure fill color matches border color
                 fillOpacity: 0.5,
-                radius: 10000 // 10 km radius
+                radius: 16093.4 // 10 km radius
             }).addTo(map).bindPopup(`Drought Severity: ${droughtSeverity}`);
         }
 
@@ -266,30 +286,30 @@
             let message = '';
             switch (severity) {
                 case 'Normal':
-                    message = '<strong>Normal:</strong> Business as usual. No immediate water-saving measures are needed.';
+                    message = "No drought conditions detected. Continue with regular water usage.";
                     break;
                 case 'Abnormally Dry':
-                    message = '<strong>Abnormally Dry:</strong> Water conservation is recommended. Reduce water usage where possible.';
+                    message = "Conditions are abnormally dry. Consider reducing outdoor water usage.";
                     break;
                 case 'Moderate Drought':
-                    message = '<strong>Moderate Drought:</strong> Increase water conservation. Limit unnecessary water usage.';
+                    message = "Moderate drought. Water conservation measures are recommended.";
                     break;
                 case 'Severe Drought':
-                    message = '<strong>Severe Drought:</strong> Severe drought conditions. Water-saving measures are critical.';
+                    message = "Severe drought. Take urgent steps to conserve water.";
                     break;
                 case 'Extreme Drought':
-                    message = '<strong>Extreme Drought:</strong> Extreme drought conditions. Strict water-saving measures are mandatory.';
+                    message = "Extreme drought. Immediate action needed to conserve water.";
                     break;
                 case 'Exceptional Drought':
-                    message = '<strong>Exceptional Drought:</strong> Exceptional drought conditions. Immediate action is necessary to preserve water.';
+                    message = "Exceptional drought. Extreme water conservation measures are required.";
                     break;
                 default:
-                    message = 'Unable to determine drought severity.';
+                    message = "Unable to determine drought severity.";
                     break;
             }
-            advice.innerHTML = message;
+
+            advice.innerText = message;
         }
     </script>
-
 </body>
 </html>
