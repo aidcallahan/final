@@ -118,27 +118,28 @@
 
         // Function to geocode address using Nominatim (OpenStreetMap)
         function getCoordinates(address) {
-            const url = https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)};
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
 
-            return fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        const result = data[0];
-                        return {
-                            lat: parseFloat(result.lat),
-                            lon: parseFloat(result.lon)
-                        };
-                    } else {
-                        throw new Error('No results found for the provided address');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while trying to fetch coordinates. Please try again.');
-                    return { lat: null, lon: null };
-                });
-        }
+    return fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length > 0) {
+                const result = data[0];
+                return {
+                    lat: parseFloat(result.lat),
+                    lon: parseFloat(result.lon)
+                };
+            } else {
+                throw new Error('No results found for the provided address');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while trying to fetch coordinates. Please try again.');
+            return { lat: null, lon: null };
+        });
+}
+
 
         // Function to fetch drought data for the year 2020 using a CORS proxy
         function getDroughtData(lat, lon, year) {
