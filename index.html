@@ -180,16 +180,19 @@
             let severity = 'Normal';  // Default to Normal
 
             if (lat && lon) { // Check if lat and lon are defined
+                console.log("Features in drought data:", droughtData.features); // Log all features
+
                 droughtData.features.forEach(feature => {
                     console.log("Checking feature: ", feature); // Debugging: log each feature
-                    console.log("Feature coordinates: ", feature.geometry.coordinates); // Log coordinates
-
+                    console.log("Feature geometry:", feature.geometry); // Log geometry to ensure we are looking at the correct data
+                    console.log("Feature coordinates:", feature.geometry.coordinates); // Log coordinates
+                    
                     // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
-                        console.log("Found a match inside polygon! Drought type: ", feature.properties.Drought_Type);
-
-                        // Map Drought_Type or dm values to severity
-                        switch (feature.properties.Drought_Type) {
+                        console.log("Found a match inside polygon! Drought type: ", feature.properties.DM);
+                        
+                        // Map DM values to severity
+                        switch (feature.properties.DM) {
                             case 1:
                                 severity = 'Abnormally Dry';
                                 break;
@@ -218,10 +221,11 @@
             // Handle MultiPolygon (array of polygons)
             if (Array.isArray(coordinates[0][0])) {
                 coordinates.forEach(polygon => {
-                    inside = inside || checkPolygonInside(lat, lon, polygon);
+                    inside = inside || checkPolygonInside(lon, lat, polygon); // Swap lat and lon here
                 });
             } else {
-                inside = checkPolygonInside(lat, lon, coordinates);
+                // Single polygon
+                inside = checkPolygonInside(lon, lat, coordinates); // Swap lat and lon here
             }
 
             console.log("Inside polygon? " + inside);
@@ -229,7 +233,7 @@
         }
 
         // Helper function to check if a point is inside a single polygon using Ray-Casting Algorithm
-        function checkPolygonInside(lat, lon, polygon) {
+        function checkPolygonInside(lon, lat, polygon) {
             let inside = false;
             for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
                 let xi = polygon[i][0], yi = polygon[i][1]; // [longitude, latitude]
@@ -274,26 +278,20 @@
             const advice = document.getElementById('advice');
 
             let message = '';
-            switch (severity) {
-                case 'Normal':
-                    message = 'The area is currently normal, no immediate water-saving measures are needed.';
-                    break;
-                case 'Abnormally Dry':
-                    message = 'Water conservation is recommended. Reduce water usage where possible.';
-                    break;
-                case 'Drought':
-                    message = 'Severe drought conditions. Water-saving measures are critical.';
-                    break;
-                case 'Severe Drought':
-                    message = 'Extreme drought conditions. Strict water-saving measures are mandatory.';
-                    break;
-                default:
-                    message = 'Unable to determine drought severity.';
-                    break;
+            if (severity === 'Normal') {
+                message = "The area is experiencing normal conditions. Continue to conserve water.";
+            } else if (severity === 'Abnormally Dry') {
+                message = "The area is abnormally dry. Consider using water more efficiently.";
+            } else if (severity === 'Drought') {
+                message = "The area is in drought. Be mindful of water usage and conserve as much as possible.";
+            } else if (severity === 'Severe Drought') {
+                message = "Severe drought conditions. Water restrictions may be in place, conserve water.";
             }
-            advice.innerHTML = message;
+
+            advice.textContent = message;
         }
     </script>
 
 </body>
 </html>
+
