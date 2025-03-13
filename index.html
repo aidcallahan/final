@@ -127,6 +127,8 @@
                     }).catch(error => {
                         console.error('Error fetching drought data:', error);
                     });
+                } else {
+                    console.error('Invalid coordinates received!');
                 }
             }).catch(error => {
                 console.error('Error fetching coordinates:', error);
@@ -164,7 +166,7 @@
             return fetch(droughtDataUrl)
                 .then(response => response.json())
                 .then(data => {
-                    return findDroughtSeverity(data, lat, lon);  // Pass lat and lon to the function
+                    return findDroughtSeverity(data, lat, lon); // Ensure lat and lon are passed correctly
                 })
                 .catch(error => {
                     console.error('Error fetching drought data:', error);
@@ -175,12 +177,16 @@
         // Function to find drought severity based on the fetched data
         function findDroughtSeverity(droughtData, lat, lon) {
             let severity = 'Normal';  // Default to Normal
-            droughtData.features.forEach(feature => {
-                // Check if the coordinates are within the bounds of the drought region
-                if (isInside(lat, lon, feature.geometry.coordinates[0])) {
-                    severity = feature.properties.Drought_Type || 'Normal';
-                }
-            });
+            if (lat && lon) { // Check if lat and lon are defined
+                droughtData.features.forEach(feature => {
+                    // Check if the coordinates are within the bounds of the drought region
+                    if (isInside(lat, lon, feature.geometry.coordinates[0])) {
+                        severity = feature.properties.Drought_Type || 'Normal';
+                    }
+                });
+            } else {
+                console.error("Latitude or Longitude is undefined!");
+            }
             return severity;
         }
 
