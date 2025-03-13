@@ -182,15 +182,14 @@
 
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
-                    // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
-                        // Check the feature ID to determine the severity
-                        if (feature.properties.id === 1) {
-                            severity = 'Normal';
-                        } else if (feature.properties.id === 2) {
-                            severity = 'Moderate';
-                        } else if (feature.properties.id === 3) {
-                            severity = 'Extreme';
+                        // Check the 'DM' property to determine the severity
+                        if (feature.properties.DM === 3) {
+                            severity = 'Extreme';  // Severity level 3 represents Extreme Drought
+                        } else if (feature.properties.DM === 2) {
+                            severity = 'Moderate';  // Severity level 2 represents Moderate Drought
+                        } else if (feature.properties.DM === 1) {
+                            severity = 'Normal';  // Severity level 1 represents Normal conditions
                         }
                     }
                 });
@@ -203,7 +202,7 @@
         // Function to check if a point is inside a polygon (supports both single and multi-polygons)
         function isInside(lat, lon, coordinates) {
             let inside = false;
-
+            
             if (Array.isArray(coordinates[0][0])) {
                 // Multi-polygon (array of polygons)
                 coordinates.forEach(polygon => {
@@ -213,7 +212,7 @@
                 // Single polygon
                 inside = checkPolygonInside(lat, lon, coordinates);
             }
-
+            
             return inside;
         }
 
