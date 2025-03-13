@@ -202,8 +202,11 @@
                             case 3:
                                 severity = 'Severe Drought';
                                 break;
+                            case 4:
+                                severity = 'Extreme Drought'; // Added DM=4 for extreme drought
+                                break;
                             default:
-                                severity = 'Normal'; // Default to Normal if not matching 1, 2, or 3
+                                severity = 'Normal'; // Default to Normal if not matching 1, 2, 3, or 4
                         }
                     }
                 });
@@ -262,7 +265,8 @@
                 'Normal': 'green',
                 'Abnormally Dry': 'yellow',
                 'Drought': 'orange',
-                'Severe Drought': 'red'
+                'Severe Drought': 'red',
+                'Extreme Drought': 'purple' // Color for DM=4
             };
 
             // Add a circle marker at the address location
@@ -276,22 +280,31 @@
         // Function to display water preservation advice
         function displayAdvice(severity) {
             const advice = document.getElementById('advice');
-
             let message = '';
-            if (severity === 'Normal') {
-                message = "The area is experiencing normal conditions. Continue to conserve water.";
-            } else if (severity === 'Abnormally Dry') {
-                message = "The area is abnormally dry. Consider using water more efficiently.";
-            } else if (severity === 'Drought') {
-                message = "The area is in drought. Be mindful of water usage and conserve as much as possible.";
-            } else if (severity === 'Severe Drought') {
-                message = "Severe drought conditions. Water restrictions may be in place, conserve water.";
-            }
 
-            advice.textContent = message;
+            switch (severity) {
+                case 'Normal':
+                    message = "<b>Normal</b>: Business as usual. Continue to conserve water where possible.";
+                    break;
+                case 'Abnormally Dry':
+                    message = "<b>Abnormally Dry</b>: Consider using water more efficiently. Limit outdoor watering.";
+                    break;
+                case 'Drought':
+                    message = "<b>Drought</b>: Be mindful of water usage. Conserve water and avoid wasteful practices.";
+                    break;
+                case 'Severe Drought':
+                    message = "<b>Severe Drought</b>: Water restrictions may be in place. Conserve water as much as possible.";
+                    break;
+                case 'Extreme Drought':
+                    message = "<b>Extreme Drought</b>: Extreme drought conditions. Strict water-saving measures are mandatory.";
+                    break;
+                default:
+                    message = 'Unable to determine drought severity.';
+                    break;
+            }
+            advice.innerHTML = message;
         }
     </script>
 
 </body>
 </html>
-
