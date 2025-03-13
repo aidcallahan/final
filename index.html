@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drought Awareness</title>
+
+    <!-- Leaflet.js (for the map) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            text-align: left;
+            padding-top: 20px;
+            padding-left: 20px;
+        }
+
+        form {
+            text-align: center;
+            margin: 20px;
+        }
+
+        label, select, input {
+            margin: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #advice {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h1>Check if Your Area is in Drought (2020)</h1>
+    <form id="locationForm">
+        <label for="address">Enter your address:</label>
+        <input type="text" id="address" name="address" required>
+
+        <label for="month">Select month:</label>
+        <select id="month" name="month" required>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+        </select>
+        
+        <button type="submit">Check Drought Status</button>
+    </form>
+
+    <div id="map"></div> <!-- Map container -->
+    <div id="advice"></div> <!-- Water preservation advice -->
+
+    <script>
+        let map; // Declare the map variable outside of the function to ensure global access
+
+        document.getElementById('locationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const address = document.getElementById('address').value;
+
+            // Geocode the address using Nominatim (OpenStreetMap)
+            getCoordinates(address).then(coords => {
+                const lat = coords.lat;
+                const lon = coords.lon;
+
+                // Fetch drought data for the year 2020 using the CORS proxy
+                getDroughtData(lat, lon, 2020).then(droughtData => {
+                    // Display the map with drought heatmap
+                    showMap(lat, lon, droughtData);
+
+                    // Show advice based on drought data
+                    displayAdvice(droughtData);
+                }).catch(error => {
+                    console.error('Error fetching drought data:', error);
+                    alert('Failed to fetch drought data for 2020. Please try again later.');
+                });
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('Unable to fetch coordinates for the address. Please try again.');
+            });
+        });
+
+        // Function to geocode address using Nominatim (OpenStreetMap)
+        function getCoordinates(address) {
+            const url = https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)};
+
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const result = data[0];
+                        return {
+                            lat: parseFloat(result.lat),
+                            lon: parseFloat(result.lon)
+                        };
+                    } else {
+                        throw new Error('No results found for the provided address');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while trying to fetch coordinates. Please try again.');
+                    return { lat: null, lon: null };
+                });
+        }
+
+        // Function to fetch drought data for the year 2020 using a CORS proxy
+        function getDroughtData(lat, lon, year) {
+            // Proxy URL (AllOrigins)
+            const proxyUrl = 'https://api.allorigins.win/get?url=';
+            const droughtDataUrl = 'https://droughtmonitor.unl.edu/data/USDM_2020.geojson'; // Original drought data URL
+
+            return fetch(proxyUrl + encodeURIComponent(droughtDataUrl))
+                .then(response => response.json())
+                .then(responseData => {
+                    const droughtData = JSON.parse(responseData.contents); // Parse the drought data string to JSON
+                    // Now you need to implement logic to check the drought data for the given coordinates
+                    return findDroughtSeverity(lat, lon, droughtData);
+                })
+                .catch(error => {
+                    console.error('Error fetching drought data:', error);
+                    alert('Failed to fetch drought data. Please try again later.');
+                    return 'Normal';  // Default fallback value
+                });
+        }
+
+        // Function to check drought severity based on coordinates and drought data
+        function findDroughtSeverity(lat, lon, droughtData) {
+            // Loop through the geojson and find the drought conditions based on the lat/lon
+            let severity = 'Normal';  // Default to Normal
+            droughtData.features.forEach(feature => {
+                const bounds = feature.geometry.coordinates[0]; // Coordinates for the polygon boundary
+                if (isInside(lat, lon, bounds)) { // Check if lat/lon is inside the drought area
+                    severity = feature.properties.Drought_Type || 'Normal';
+                }
+            });
+            return severity;
+        }
+
+        // Function to check if a point is inside a polygon (for lat/lon inside a drought area)
+        function isInside(lat, lon, bounds) {
+            let inside = false;
+            for (let i = 0, j = bounds.length - 1; i < bounds.length; j = i++) {
+                let xi = bounds[i][0], yi = bounds[i][1];
+                let xj = bounds[j][0], yj = bounds[j][1];
+
+                let intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // Function to display the map with drought heatmap (Leaflet.js)
+        function showMap(lat, lon, droughtData) {
+            // If the map already exists, remove it
+            if (map) {
+                map.remove(); // Remove the existing map
+            }
+
+            // Create a new map instance
+            map = L.map('map').setView([lat, lon], 10);
+
+            // Use OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add drought-related data to the map (simplified)
+            const droughtLayer = L.layerGroup().addTo(map);
+            if (droughtData === 'Extreme') {
+                L.circle([lat, lon], { color: 'red', radius: 50000 }).addTo(droughtLayer).bindPopup('Extreme Drought');
+            } else if (droughtData === 'Moderate') {
+                L.circle([lat, lon], { color: 'orange', radius: 50000 }).addTo(droughtLayer).bindPopup('Moderate Drought');
+            } else {
+                L.circle([lat, lon], { color: 'green', radius: 50000 }).addTo(droughtLayer).bindPopup('Normal Conditions');
+            }
+        }
+
+        // Function to display water preservation advice
+        function displayAdvice(droughtData) {
+            const adviceElement = document.getElementById('advice');
+            if (droughtData === 'Extreme') {
+                adviceElement.innerHTML = "<strong>Extreme Water Preservation Required:</strong> Avoid water-intensive activities, reduce outdoor water usage, and follow local water restrictions.";
+            } else if (droughtData === 'Moderate') {
+                adviceElement.innerHTML = "<strong>Moderate Water Preservation:</strong> Be mindful of water use, limit lawn watering, and reduce water waste.";
+            } else {
+                adviceElement.innerHTML = "<strong>Normal Conditions:</strong> No special water preservation practices are needed.";
+            }
+        }
+    </script>
+
+</body>
+</html>
