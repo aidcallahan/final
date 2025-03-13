@@ -202,6 +202,32 @@
             }
         }
 
+        // Function to check if point is inside polygon
+        function isInside(lat, lon, coordinates) {
+            // Check if the point (lat, lon) is inside any polygon
+            let isInside = false;
+            for (let i = 0; i < coordinates.length; i++) {
+                const polygon = coordinates[i][0]; // MultiPolygon case, get first array
+                isInside = isPointInPolygon(lat, lon, polygon);
+                if (isInside) break;
+            }
+            return isInside;
+        }
+
+        // Function to check if a point is inside a polygon (ray-casting algorithm)
+        function isPointInPolygon(lat, lon, polygon) {
+            let isInside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i][0], yi = polygon[i][1];
+                const xj = polygon[j][0], yj = polygon[j][1];
+
+                const intersect = ((yi > lat) !== (yj > lat)) &&
+                    (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+                if (intersect) isInside = !isInside;
+            }
+            return isInside;
+        }
+
         // Function to show the map with drought severity circles
         function showMap(lat, lon, droughtSeverity) {
             if (map) {
@@ -216,12 +242,12 @@
 
             // Define colors based on drought severity
             const severityColors = {
+                'Normal': 'green',
                 'Abnormally Dry': 'yellow',
-                'Moderate Drought': 'orange',
-                'Severe Drought': 'red',
-                'Extreme Drought': 'purple',
-                'Exceptional Drought': 'darkred',
-                'Normal': 'green'
+                'Moderate Drought': 'lightorange',
+                'Severe Drought': 'orange',
+                'Extreme Drought': 'darkorange',
+                'Exceptional Drought': 'red'
             };
 
             // Add a circle marker at the address location
