@@ -55,7 +55,6 @@
             width: 100%;
         }
     </style>
-
 </head>
 <body>
 
@@ -89,31 +88,49 @@
     <script>
         let map; // Declare the map variable outside of the function to ensure global access
 
+        // List of GeoJSON files corresponding to each month
+        const droughtDataUrls = {
+            1: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240102.json',
+            2: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240206.json',
+            3: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240305.json',
+            4: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240402.json',
+            5: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240507.json',
+            6: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240604.json',
+            7: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240702.json',
+            8: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240806.json',
+            9: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240903.json',
+            10: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241001.json',
+            11: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241105.json',
+            12: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241203.json'
+        };
+
+        // Submit event listener for the location form
         document.getElementById('locationForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const address = document.getElementById('address').value;
+            const month = parseInt(document.getElementById('month').value);
 
             // Geocode the address using Nominatim (OpenStreetMap)
             getCoordinates(address).then(coords => {
-                const lat = coords.lat;
-                const lon = coords.lon;
+                if (coords.lat && coords.lon) {
+                    const lat = coords.lat;
+                    const lon = coords.lon;
 
-                // Fetch drought data for the selected month using GitHub Pages URLs
-                const month = parseInt(document.getElementById('month').value);
-                getDroughtData(lat, lon, month).then(droughtData => {
-                    // Display the map with drought heatmap
-                    showMap(lat, lon, droughtData);
+                    // Fetch the drought data for the selected month
+                    getDroughtData(month).then(droughtData => {
+                        // Display the map with drought heatmap
+                        showMap(lat, lon, droughtData);
 
-                    // Show advice based on drought data
-                    displayAdvice(droughtData);
-                }).catch(error => {
-                    console.error('Error:', error);
-                    alert('Unable to fetch drought data. Please try again.');
-                });
+                        // Show advice based on drought data
+                        displayAdvice(droughtData);
+                    }).catch(error => {
+                        console.error('Error fetching drought data:', error);
+                    });
+                }
             }).catch(error => {
-                console.error('Error:', error);
-                alert('Unable to fetch coordinates for the address. Please try again.');
+                console.error('Error fetching coordinates:', error);
+                alert('Unable to find the coordinates for the given address.');
             });
         });
 
@@ -136,59 +153,38 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Unable to fetch coordinates. Please ensure the address is complete or try again.');
                     return { lat: null, lon: null };
                 });
         }
 
-        // Function to fetch drought data for the selected month from GitHub Pages
-        function getDroughtData(lat, lon, month) {
-            const droughtDataUrls = {
-                1: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240102.json',
-                2: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240206.json',
-                3: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240305.json',
-                4: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240402.json',
-                5: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240507.json',
-                6: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240604.json',
-                7: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240702.json',
-                8: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240806.json',
-                9: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20240903.json',
-                10: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241001.json',
-                11: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241105.json',
-                12: 'https://raw.githubusercontent.com/aidcallahan/final/main/data/usdm_20241203.json'
-            };
+        // Function to fetch drought data for the selected month from GitHub
+        function getDroughtData(month) {
+            const droughtDataUrl = droughtDataUrls[month];
 
-            const url = droughtDataUrls[month];
-
-            if (!url) {
-                throw new Error('Invalid month selected');
-            }
-
-            return fetch(url)
+            return fetch(droughtDataUrl)
                 .then(response => response.json())
-                .then(droughtData => {
-                    return findDroughtSeverity(lat, lon, droughtData);
+                .then(data => {
+                    return findDroughtSeverity(data);
                 })
                 .catch(error => {
                     console.error('Error fetching drought data:', error);
-                    alert('Failed to fetch drought data. Please try again later.');
-                    return 'Normal';  // Default fallback value
+                    return 'Normal'; // Default to Normal if there's an issue
                 });
         }
 
-        // Function to check drought severity based on coordinates and drought data
-        function findDroughtSeverity(lat, lon, droughtData) {
+        // Function to find drought severity based on the fetched data
+        function findDroughtSeverity(droughtData) {
             let severity = 'Normal';  // Default to Normal
             droughtData.features.forEach(feature => {
-                const bounds = feature.geometry.coordinates[0]; // Coordinates for the polygon boundary
-                if (isInside(lat, lon, bounds)) { // Check if lat/lon is inside the drought area
+                // Check if the coordinates are within the bounds of the drought region
+                if (isInside(lat, lon, feature.geometry.coordinates[0])) {
                     severity = feature.properties.Drought_Type || 'Normal';
                 }
             });
             return severity;
         }
 
-        // Function to check if a point is inside a polygon (for lat/lon inside a drought area)
+        // Function to check if a point is inside a polygon
         function isInside(lat, lon, bounds) {
             let inside = false;
             for (let i = 0, j = bounds.length - 1; i < bounds.length; j = i++) {
@@ -201,22 +197,18 @@
             return inside;
         }
 
-        // Function to display the map with drought heatmap (Leaflet.js)
+        // Function to show the map with drought severity circles
         function showMap(lat, lon, droughtData) {
-            // If the map already exists, remove it
             if (map) {
                 map.remove(); // Remove the existing map
             }
 
-            // Create a new map instance
             map = L.map('map').setView([lat, lon], 10);
 
-            // Use OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            // Add drought-related data to the map (simplified)
             const droughtLayer = L.layerGroup().addTo(map);
             if (droughtData === 'Extreme') {
                 L.circle([lat, lon], { color: 'red', radius: 50000 }).addTo(droughtLayer).bindPopup('Extreme Drought');
@@ -227,18 +219,17 @@
             }
         }
 
-        // Function to display water preservation advice
+        // Function to display advice based on drought severity
         function displayAdvice(droughtData) {
             const adviceElement = document.getElementById('advice');
             if (droughtData === 'Extreme') {
-                adviceElement.innerHTML = '<strong>Extreme drought:</strong> Water conservation is critical. Limit water use.';
+                adviceElement.innerHTML = "<strong>Extreme Water Preservation Required:</strong> Avoid water-intensive activities, reduce outdoor water usage, and follow local water restrictions.";
             } else if (droughtData === 'Moderate') {
-                adviceElement.innerHTML = '<strong>Moderate drought:</strong> Be mindful of water usage. Use water efficiently.';
+                adviceElement.innerHTML = "<strong>Moderate Water Preservation:</strong> Be mindful of water use, limit lawn watering, and reduce water waste.";
             } else {
-                adviceElement.innerHTML = '<strong>Normal conditions:</strong> No significant drought observed. Keep water use reasonable.';
+                adviceElement.innerHTML = "<strong>Normal Conditions:</strong> No special water preservation practices are needed.";
             }
         }
     </script>
-
 </body>
 </html>
