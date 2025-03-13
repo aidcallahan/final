@@ -118,7 +118,7 @@
                     const lon = coords.lon;
 
                     // Fetch the drought data for the selected month
-                    getDroughtData(month).then(droughtData => {
+                    getDroughtData(month, lat, lon).then(droughtData => {
                         // Display the map with drought heatmap
                         showMap(lat, lon, droughtData);
 
@@ -158,13 +158,13 @@
         }
 
         // Function to fetch drought data for the selected month from GitHub
-        function getDroughtData(month) {
+        function getDroughtData(month, lat, lon) {
             const droughtDataUrl = droughtDataUrls[month];
 
             return fetch(droughtDataUrl)
                 .then(response => response.json())
                 .then(data => {
-                    return findDroughtSeverity(data);
+                    return findDroughtSeverity(data, lat, lon);  // Pass lat and lon to the function
                 })
                 .catch(error => {
                     console.error('Error fetching drought data:', error);
@@ -173,7 +173,7 @@
         }
 
         // Function to find drought severity based on the fetched data
-        function findDroughtSeverity(droughtData) {
+        function findDroughtSeverity(droughtData, lat, lon) {
             let severity = 'Normal';  // Default to Normal
             droughtData.features.forEach(feature => {
                 // Check if the coordinates are within the bounds of the drought region
