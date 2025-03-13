@@ -182,10 +182,26 @@
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
                     console.log("Checking feature: ", feature); // Debugging: log each feature
+                    console.log("Feature coordinates: ", feature.geometry.coordinates); // Log coordinates
+
                     // Check if the coordinates are within the bounds of the drought region
-                    if (isInside(lat, lon, feature.geometry.coordinates[0])) {
+                    if (isInside(lat, lon, feature.geometry.coordinates)) {
                         console.log("Found a match inside polygon! Drought type: ", feature.properties.Drought_Type);
-                        severity = feature.properties.Drought_Type || 'Normal'; // Default to Normal if Drought_Type is not present
+
+                        // Map Drought_Type or dm values to severity
+                        switch (feature.properties.Drought_Type) {
+                            case 1:
+                                severity = 'Abnormally Dry';
+                                break;
+                            case 2:
+                                severity = 'Drought';
+                                break;
+                            case 3:
+                                severity = 'Severe Drought';
+                                break;
+                            default:
+                                severity = 'Normal'; // Default to Normal if not matching 1, 2, or 3
+                        }
                     }
                 });
             } else {
