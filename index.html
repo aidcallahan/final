@@ -113,6 +113,7 @@
 
             // Geocode the address using Nominatim (OpenStreetMap)
             getCoordinates(address).then(coords => {
+                console.log("Geocoded coordinates:", coords); // Debugging: log the coordinates
                 if (coords.lat && coords.lon) {
                     const lat = coords.lat;
                     const lon = coords.lon;
@@ -166,7 +167,7 @@
             return fetch(droughtDataUrl)
                 .then(response => response.json())
                 .then(data => {
-                    return findDroughtSeverity(data, lat, lon); // Ensure lat and lon are passed correctly
+                    return findDroughtSeverity(data, lat, lon);
                 })
                 .catch(error => {
                     console.error('Error fetching drought data:', error);
@@ -177,11 +178,23 @@
         // Function to find drought severity based on the fetched data
         function findDroughtSeverity(droughtData, lat, lon) {
             let severity = 'Normal';  // Default to Normal
+
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
+                    console.log("Checking feature: ", feature); // Debugging: log each feature
+                    
                     // Check if the coordinates are within the bounds of the drought region
-                    if (isInside(lat, lon, feature.geometry.coordinates[0])) {
-                        severity = feature.properties.Drought_Type || 'Normal';
+                    if (isInside(lat, lon, feature.geometry.coordinates)) {
+                        console.log("Found a match inside polygon! Feature ID: ", feature.properties.id);
+                        
+                        // Check the feature ID to determine the severity
+                        if (feature.properties.id === 1) {
+                            severity = 'Normal';
+                        } else if (feature.properties.id === 2) {
+                            severity = 'Moderate';
+                        } else if (feature.properties.id === 3) {
+                            severity = 'Extreme';
+                        }
                     }
                 });
             } else {
@@ -190,12 +203,30 @@
             return severity;
         }
 
-        // Function to check if a point is inside a polygon
-        function isInside(lat, lon, bounds) {
+        // Function to check if a point is inside a polygon (supports both single and multi-polygons)
+        function isInside(lat, lon, coordinates) {
             let inside = false;
-            for (let i = 0, j = bounds.length - 1; i < bounds.length; j = i++) {
-                let xi = bounds[i][0], yi = bounds[i][1];
-                let xj = bounds[j][0], yj = bounds[j][1];
+
+            // Handle both single and multiple polygons (e.g., multi-polygons)
+            if (Array.isArray(coordinates[0][0])) {
+                // Multi-polygon (array of polygons)
+                coordinates.forEach(polygon => {
+                    inside = inside || checkPolygonInside(lat, lon, polygon);
+                });
+            } else {
+                // Single polygon
+                inside = checkPolygonInside(lat, lon, coordinates);
+            }
+
+            return inside;
+        }
+
+        // Helper function to check if a point is inside a single polygon
+        function checkPolygonInside(lat, lon, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                let xi = polygon[i][0], yi = polygon[i][1];
+                let xj = polygon[j][0], yj = polygon[j][1];
 
                 let intersect = ((yi > lat) !== (yj > lat)) && (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi);
                 if (intersect) inside = !inside;
