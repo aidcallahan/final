@@ -146,7 +146,7 @@
 
         // Function to geocode address using Nominatim (OpenStreetMap)
         function getCoordinates(address) {
-            const url = https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1`;
 
             return fetch(url)
                 .then(response => response.json())
@@ -266,7 +266,7 @@
                 fillColor: severityColors[droughtSeverity] || 'green', // Ensure fill color matches border color
                 fillOpacity: 0.5,
                 radius: 10000 // 10 km radius
-            }).addTo(map).bindPopup(Drought Severity: ${droughtSeverity});
+            }).addTo(map).bindPopup(`Drought Severity: ${droughtSeverity}`);
         }
 
         // Function to display water preservation advice
