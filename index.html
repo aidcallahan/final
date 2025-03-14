@@ -189,14 +189,14 @@
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
                     console.log("Checking feature:", feature);  // Debugging: log the feature data
-                    // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
                         console.log("Point is inside polygon!");  // Debugging: log if point is inside polygon
                         severity = getSeverityLabel(feature.properties.DM) || 'Normal'; // Default to Normal if DM is not found
                     }
                 });
             }
-            console.log("Drought severity:", severity);  // Debugging: log the final severity
+
+            console.log("Final Drought Severity:", severity); // Debugging: log the final severity
             return severity;
         }
 
@@ -238,6 +238,16 @@
             return isInside;
         }
 
+        // Define colors based on drought severity
+        const severityColors = {
+            'Normal': 'green',
+            'Abnormally Dry': 'yellow',
+            'Moderate Drought': '#FFA500', // Use hex code for orange
+            'Severe Drought': 'orange',
+            'Extreme Drought': 'darkorange',
+            'Exceptional Drought': 'red'
+        };
+
         // Function to show the map with drought severity circles
         function showMap(lat, lon, droughtSeverity) {
             if (map) {
@@ -250,22 +260,19 @@
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
 
-            // Define colors based on drought severity
-            const severityColors = {
-                'Normal': 'green',
-                'Abnormally Dry': 'yellow',
-                'Moderate Drought': '#FFA500',
-                'Severe Drought': 'orange',
-                'Extreme Drought': 'darkorange',
-                'Exceptional Drought': 'red'
-            };
+            // Log the drought severity and corresponding color for debugging
+            console.log("Drought Severity:", droughtSeverity);  // Debugging: check the severity
+            console.log("Drought Severity Color:", severityColors[droughtSeverity]); // Debugging: check the color being applied
+
+            // Check if the drought severity is valid and apply the color
+            const droughtColor = severityColors[droughtSeverity] || 'green'; // Default to green if the severity is not mapped
 
             // Add a circle marker at the address location
             L.circle([lat, lon], {
-                color: severityColors[droughtSeverity] || 'green', // Default to green
-                fillColor: severityColors[droughtSeverity] || 'green', // Ensure fill color matches border color
-                fillOpacity: 0.5,
-                radius: 10000 // 10 km radius
+                color: droughtColor, // Use the color based on severity
+                fillColor: droughtColor, // Ensure fill color matches border color
+                fillOpacity: 0.5, // Set opacity to 50%
+                radius: 10000 // Set radius (10 km radius)
             }).addTo(map).bindPopup(`Drought Severity: ${droughtSeverity}`);
         }
 
@@ -302,9 +309,4 @@
 
         // Information at the bottom of the page
         document.getElementById('info').innerHTML = `
-            <p>Drought conditions are reflective of 2024 data collected by the National Drought Mitigation Center (NDMC), the U.S. Department of Agriculture (USDA) and the National Oceanic and Atmospheric Administration (NOAA). For more information on what YOU can do during a drought, <a href="https://www.weather.gov/safety/drought-action#:~:text=Reduce%20your%20outdoor%20water%20usage,early%20morning%20or%20late%20evening" target="_blank">click here</a>.</p>
-        `;
-    </script>
-
-</body>
-</html>
+            <p>Drought conditions are reflective of 2024 data collected by the National Drought Mitigation Center (NDMC), the U.S. Department of Agriculture (USDA) and the National Oceanic and Atmospheric
