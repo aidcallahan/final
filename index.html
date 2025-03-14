@@ -14,7 +14,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #a3c9f1; /* Pastel blue background */
+            background-color: #b3cde0; /* pastel blue background */
         }
 
         h1 {
@@ -55,20 +55,10 @@
             width: 100%;
         }
 
-        #footer {
+        #info {
             text-align: center;
             margin-top: 20px;
             font-size: 14px;
-            color: #333;
-        }
-
-        #footer a {
-            color: #4CAF50;
-            text-decoration: none;
-        }
-
-        #footer a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>
@@ -100,10 +90,7 @@
 
     <div id="map"></div> <!-- Map container -->
     <div id="advice"></div> <!-- Water preservation advice -->
-
-    <div id="footer">
-        <p>Drought conditions are reflective of 2024 data collected by the National Drought Mitigation Center (NDMC), the U.S. Department of Agriculture (USDA) and the National Oceanic and Atmospheric Administration (NOAA). For more information on what YOU can do during a drought, <a href="https://www.weather.gov/safety/drought-action#:~:text=Reduce%20your%20outdoor%20water%20usage,early%20morning%20or%20late%20evening" target="_blank">click here</a>.</p>
-    </div>
+    <div id="info"></div> <!-- Information and links -->
 
     <script>
         let map; // Declare the map variable outside of the function to ensure global access
@@ -201,12 +188,15 @@
 
             if (lat && lon) { // Check if lat and lon are defined
                 droughtData.features.forEach(feature => {
+                    console.log("Checking feature:", feature);  // Debugging: log the feature data
                     // Check if the coordinates are within the bounds of the drought region
                     if (isInside(lat, lon, feature.geometry.coordinates)) {
+                        console.log("Point is inside polygon!");  // Debugging: log if point is inside polygon
                         severity = getSeverityLabel(feature.properties.DM) || 'Normal'; // Default to Normal if DM is not found
                     }
                 });
             }
+            console.log("Drought severity:", severity);  // Debugging: log the final severity
             return severity;
         }
 
@@ -224,8 +214,8 @@
 
         // Function to check if point is inside polygon
         function isInside(lat, lon, coordinates) {
-            // Check if the point (lat, lon) is inside any polygon
             let isInside = false;
+            console.log("Checking coordinates:", coordinates);  // Debugging: log the coordinates being checked
             for (let i = 0; i < coordinates.length; i++) {
                 const polygon = coordinates[i][0]; // MultiPolygon case, get first array
                 isInside = isPointInPolygon(lat, lon, polygon);
@@ -275,7 +265,7 @@
                 color: severityColors[droughtSeverity] || 'green', // Default to green
                 fillColor: severityColors[droughtSeverity] || 'green', // Ensure fill color matches border color
                 fillOpacity: 0.5,
-                radius: 16093.4 // 10 km radius
+                radius: 10000 // 10 km radius
             }).addTo(map).bindPopup(`Drought Severity: ${droughtSeverity}`);
         }
 
@@ -286,30 +276,35 @@
             let message = '';
             switch (severity) {
                 case 'Normal':
-                    message = "No drought conditions detected. Continue with regular water usage.";
+                    message = '<strong>Normal:</strong> Typical conditions. No immediate water-saving measures are needed.';
                     break;
                 case 'Abnormally Dry':
-                    message = "Conditions are abnormally dry. Consider reducing outdoor water usage.";
+                    message = '<strong>Abnormally Dry:</strong> Entering or recovering from drought. Be mindful of water usage and changing conditions.';
                     break;
                 case 'Moderate Drought':
-                    message = "Moderate drought. Water conservation measures are recommended.";
+                    message = '<strong>Moderate Drought:</strong> Limit unnecessary water usage.';
                     break;
                 case 'Severe Drought':
-                    message = "Severe drought. Take urgent steps to conserve water.";
+                    message = '<strong>Severe Drought:</strong> Severe drought conditions. Water-saving measures are critical.';
                     break;
                 case 'Extreme Drought':
-                    message = "Extreme drought. Immediate action needed to conserve water.";
+                    message = '<strong>Extreme Drought:</strong> Extreme drought conditions. Strict water-saving measures are mandatory.';
                     break;
                 case 'Exceptional Drought':
-                    message = "Exceptional drought. Extreme water conservation measures are required.";
+                    message = '<strong>Exceptional Drought:</strong> Exceptional drought conditions. Immediate action is necessary to preserve water.';
                     break;
                 default:
-                    message = "Unable to determine drought severity.";
+                    message = 'Unable to determine drought severity.';
                     break;
             }
-
-            advice.innerText = message;
+            advice.innerHTML = message;
         }
+
+        // Information at the bottom of the page
+        document.getElementById('info').innerHTML = `
+            <p>Drought conditions are reflective of 2024 data collected by the National Drought Mitigation Center (NDMC), the U.S. Department of Agriculture (USDA) and the National Oceanic and Atmospheric Administration (NOAA). For more information on what YOU can do during a drought, <a href="https://www.weather.gov/safety/drought-action#:~:text=Reduce%20your%20outdoor%20water%20usage,early%20morning%20or%20late%20evening" target="_blank">click here</a>.</p>
+        `;
     </script>
+
 </body>
 </html>
